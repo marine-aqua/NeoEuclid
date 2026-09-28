@@ -11,6 +11,7 @@ struct SearchConfig {
     int max_cost{6};
     int prefix_depth{2};
     int threads{0};
+    std::size_t beam_width{1000};
     std::size_t max_points{48};
     std::size_t max_states{2'000'000};
     std::size_t state_cache_entries{4'000'000};
@@ -60,6 +61,7 @@ struct SearchReport {
 // alpha/3 ray. Intersections with every existing curve and with the parabola
 // are free and only branches present in every search sample are retained.
 SearchReport search(const SearchConfig& config);
+SearchReport search_beam(const SearchConfig& config);
 SearchReport search_mitm(const SearchConfig& config);
 
 // Small deterministic regression target: tangent at P. It exercises the same

@@ -94,11 +94,17 @@ build-integrated-ninja\neo-euclid.exe parabola-search --tangent --max-cost 2
 build-integrated-ninja\neo-euclid.exe parabola-search --max-cost 6 --mask LCCLCC
 build-integrated-ninja\neo-euclid.exe parabola-search --mitm --max-cost 7 --mask CLCLCLL
 build-integrated-ninja\neo-euclid.exe parabola-search --vertex-angle --max-cost 7
+build-integrated-ninja\neo-euclid.exe parabola-search --beam-search --beam 1000 --vertex-angle --max-cost 7
 ```
 
 The `--tangent` target is a regression oracle: it must rediscover
 `circle(F;P)` followed by joining `P` to the circle's left intersection with
 the x-axis, at total cost two.
+
+`--beam-search` selects a cost-layered beam over atomic line and circle
+operations. It reuses the parameterized geometry caches, state signatures,
+terminal schemas, and dense replay. The beam implementation is currently
+single-threaded; `--threads` continues to apply to the prefix/DFS engine.
 
 For a seven-operation MITM mask ending in `L`, the engine interprets the mask
 as `shared[0:2] | left[2:4] | right[4:6] | final L`. Both arms are enumerated

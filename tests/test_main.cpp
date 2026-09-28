@@ -279,6 +279,19 @@ void test_parabola_weighted_macros_smoke() {
           "weighted perpendicular, bisector, parallel, and angle macros should generate candidates");
 }
 
+void test_parabola_beam_smoke() {
+    neo::parabola::SearchConfig config;
+    config.max_cost = 1;
+    config.beam_width = 10;
+    config.max_states = 1000;
+    config.time_limit_seconds = 1.0;
+    config.angle_at_parabola_vertex = true;
+    config.verbose = false;
+    const auto report = neo::parabola::search_beam(config);
+    check(report.expanded > 0 && report.generated > 0,
+          "parabola beam should expand and generate states");
+}
+
 }  // namespace
 
 int main() {
@@ -301,6 +314,7 @@ int main() {
         test_parallel_parabola_terminal_schemas();
         test_parabola_mitm_smoke();
         test_parabola_weighted_macros_smoke();
+        test_parabola_beam_smoke();
         std::cout << "All tests passed\n";
         return 0;
     } catch (const std::exception& error) {
