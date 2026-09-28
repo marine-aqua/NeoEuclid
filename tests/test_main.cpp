@@ -1,7 +1,9 @@
 #include "neo/geometry.hpp"
 #include "neo/engine/operation.hpp"
 #include "neo/engine/sample_batch.hpp"
+#include "neo/engine/strategies.hpp"
 #include "neo/problems/fixed_angle.hpp"
+#include "neo/problems/fixed_angle_mitm.hpp"
 #include "neo/problems/obtuse.hpp"
 #include "neo/problems/parabola.hpp"
 #include "neo/search.hpp"
@@ -9,6 +11,7 @@
 
 #include <cmath>
 #include <iostream>
+#include <random>
 #include <stdexcept>
 #include <string>
 
@@ -87,6 +90,53 @@ void test_sampled_ray_hit_classification() {
           "a non-degenerate residual outside tolerance should miss");
 }
 
+struct IntegerSearchPolicy {
+    std::optional<int> goal(int state) const {
+        return state == 4 ? std::optional<int>{state} : std::nullopt;
+    }
+    std::vector<int> expand(int state) const { return {state + 1, state + 2}; }
+    std::vector<int> expand(int state, char operation) const {
+        return {state + (operation == 'A' ? 1 : 2)};
+    }
+    int cost(int state) const { return state; }
+    std::string key(int state) const { return std::to_string(state); }
+};
+
+void test_generic_dfs_strategies() {
+    IntegerSearchPolicy policy;
+    neo::engine::StrategyLimits limits{4, 100, 1.0};
+    neo::engine::StrategyStats random_stats;
+    std::mt19937 random(7);
+    const auto random_result = neo::engine::randomized_depth_first<int, int>(
+        0, limits, policy, random, random_stats);
+    check(random_result && *random_result == 4,
+          "generic randomized DFS should find its target");
+
+    neo::engine::StrategyStats mask_stats;
+    const auto mask_result = neo::engine::masked_depth_first<int, int>(
+        0, "BB", limits, policy, mask_stats);
+    check(mask_result && *mask_result == 4,
+          "generic mask-constrained DFS should obey operation tokens");
+}
+
+struct IntegerMitmPolicy {
+    std::vector<int> shared_prefixes() const { return {1}; }
+    std::vector<int> left_records(int) const { return {2, 3}; }
+    std::vector<int> right_records(int) const { return {6, 7}; }
+    std::vector<int> keys(int record) const { return {record < 5 ? record : 9 - record}; }
+    std::optional<int> join(int base, int left, int right) const {
+        return left + right == 9 ? std::optional<int>{base + left + right} : std::nullopt;
+    }
+};
+
+void test_generic_mitm_strategy() {
+    IntegerMitmPolicy policy;
+    neo::engine::StrategyStats stats;
+    const auto result = neo::engine::meet_in_the_middle<int, int, int, int>(
+        {6, 100, 1.0}, policy, stats);
+    check(result && *result == 10, "generic MITM should index and join matching arms");
+}
+
 void test_state_rejects_duplicate_curve() {
     neo::problems::FixedAngle problem(72.0);
     const auto state = problem.initial_state();
@@ -116,6 +166,20 @@ void test_known_72_degree_construction() {
     check(result.has_value(), "known 72-degree construction should be found");
     check(result->goal.total_cost == 6, "known construction should cost six");
     check(result->state.steps.size() == 5, "final line is reconstructed as the sixth step");
+}
+
+void test_known_144_degree_mitm_construction() {
+    neo::problems::FixedAngleMitmConfig config;
+    config.max_cost = 6;
+    config.shared_cost = 3;
+    config.arm_cost = 2;
+    config.prefix_beam = 100;
+    config.max_points = 32;
+    config.max_states = 200000;
+    config.time_limit_seconds = 5.0;
+    const auto result = neo::problems::fixed_angle_mitm(144.0, config);
+    check(result.has_value(), "MITM should recover the cost-six 144-degree construction");
+    check(result->goal.total_cost == 6, "MITM construction should cost six");
 }
 
 void test_obtuse_engine_smoke() {
@@ -225,9 +289,12 @@ int main() {
         test_quantized_keys();
         test_atomic_operation_model();
         test_sampled_ray_hit_classification();
+        test_generic_dfs_strategies();
+        test_generic_mitm_strategy();
         test_state_rejects_duplicate_curve();
         test_small_search_misses_target();
         test_known_72_degree_construction();
+        test_known_144_degree_mitm_construction();
         test_obtuse_engine_smoke();
         test_obtuse_model_rules();
         test_obtuse_mitm_smoke();

@@ -11,6 +11,7 @@ add_library(neo_euclid
     src/state.cpp
     src/search.cpp
     src/problems/fixed_angle.cpp
+    src/problems/fixed_angle_mitm.cpp
     src/problems/obtuse.cpp
     src/problems/parabola.cpp
     src/problems/circumcircle.cpp

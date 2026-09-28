@@ -1,4 +1,5 @@
 #include "neo/problems/fixed_angle.hpp"
+#include "neo/problems/fixed_angle_mitm.hpp"
 #include "neo/problems/obtuse.hpp"
 #include "neo/problems/parabola.hpp"
 #include "neo/problems/circumcircle.hpp"
@@ -14,6 +15,8 @@ namespace {
 void usage() {
     std::cout << "Usage: neo-euclid fixed-angle [--target N] [--max-cost N] "
                  "[--beam N] [--max-points N] [--no-macros] [--quiet]\n"
+                 "       neo-euclid fixed-angle-mitm [--target N] [--max-cost N] "
+                 "[--shared-cost N] [--arm-cost N] [--beam N] [--max-points N]\n"
                  "       neo-euclid obtuse [--max-cost N] [--seconds N] "
                  "[--expansions N] [--max-points N] [--seed N] [--quiet]\n"
                  "       neo-euclid obtuse-mitm [--max-cost N] [--seconds N] "
@@ -97,6 +100,38 @@ int main(int argc, char** argv) {
             std::cout<<(r.found?"FOUND":"No construction found")<<" cost="<<r.cost<<" generated="<<r.generated<<" states="<<r.states<<" target-curves="<<r.target_curves<<" elapsed="<<r.elapsed_seconds<<"s\n";
             if(!r.left.empty())std::cout<<"  left: "<<r.left<<'\n';if(!r.right.empty())std::cout<<"  right: "<<r.right<<'\n';if(r.found&& !r.right.empty())std::cout<<"  final: circle(intersection(left,right); A)\n";
             return r.found?EXIT_SUCCESS:2;
+        }
+        if (std::string(argv[1]) == "fixed-angle-mitm") {
+            neo::problems::FixedAngleMitmConfig config;
+            double target = 144.0;
+            for (int i = 2; i < argc; ++i) {
+                const std::string option = argv[i];
+                if (option == "--target") target = double_value(argv, i, argc);
+                else if (option == "--max-cost") config.max_cost = integer_value(argv, i, argc);
+                else if (option == "--shared-cost") config.shared_cost = integer_value(argv, i, argc);
+                else if (option == "--arm-cost") config.arm_cost = integer_value(argv, i, argc);
+                else if (option == "--beam") config.prefix_beam = static_cast<std::size_t>(integer_value(argv, i, argc));
+                else if (option == "--max-points") config.max_points = static_cast<std::size_t>(integer_value(argv, i, argc));
+                else if (option == "--max-states") config.max_states = static_cast<std::size_t>(integer_value(argv, i, argc));
+                else if (option == "--seconds") config.time_limit_seconds = double_value(argv, i, argc);
+                else if (option == "--macros") config.use_macros = true;
+                else if (option == "--help") { usage(); return EXIT_SUCCESS; }
+                else throw std::runtime_error("unknown option: " + option);
+            }
+            const auto result = neo::problems::fixed_angle_mitm(target, config);
+            if (!result) {
+                std::cout << "No MITM construction found.\n";
+                return 2;
+            }
+            std::cout << "FOUND by MITM at cost " << result->goal.total_cost << '\n';
+            int number = 1;
+            for (const auto recipe : result->state.steps)
+                std::cout << "  " << number++ << ". "
+                          << neo::describe_recipe(result->state, recipe) << '\n';
+            std::cout << "  " << number << ". " << result->goal.final_step << '\n';
+            std::cout << "expanded-prefixes=" << result->expanded
+                      << " generated=" << result->generated << '\n';
+            return EXIT_SUCCESS;
         }
         if (std::string(argv[1]) == "obtuse" || std::string(argv[1]) == "obtuse-mitm") {
             const bool use_mitm = std::string(argv[1]) == "obtuse-mitm";

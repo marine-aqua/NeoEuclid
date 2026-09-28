@@ -27,6 +27,7 @@ ctest --test-dir build --output-on-failure
 
 ```powershell
 build\neo-euclid.exe fixed-angle --target 72 --max-cost 6 --beam 500
+build\neo-euclid.exe fixed-angle-mitm --target 144 --max-cost 6 --shared-cost 3 --arm-cost 2
 build\neo-euclid.exe obtuse --max-cost 10 --seconds 3600 --expansions 20000
 build\neo-euclid.exe obtuse-mitm --max-cost 11 --seconds 300 --shared-min 3 --shared-max 7 --records 1500
 build\neo-euclid.exe obtuse-mitm --raw --max-cost 7 --seconds 300 --shared-min 0 --shared-max 4
@@ -49,6 +50,20 @@ angle side, and implicit free access to `xy=1` intersections.
 This is a numerical heuristic search, not a proof of constructibility or
 minimality. A candidate should still be checked symbolically before it is used
 as a mathematical result.
+
+## Reusable search strategies
+
+`neo/engine/strategies.hpp` provides shared execution budgets, counters, and
+policy-based randomized DFS, mask-constrained DFS, and meet-in-the-middle
+drivers. The existing `beam_search` is the corresponding problem-independent
+beam strategy. Problem modules retain control of state layout, candidate
+generation, pruning, matching keys, and numerical confirmation so their hot
+paths can remain specialized.
+
+MITM keys are only an approximate index. Every indexed match is passed back to
+the problem policy for full numerical confirmation. `fixed-angle-mitm` uses an
+asymmetric split: a shared construction prefix, a descendant arm, a reusable
+curve from the prefix, and the charged final join.
 
 ## Parameterized parabola search
 
