@@ -93,6 +93,7 @@ build-integrated-ninja\neo-euclid.exe parabola-search --max-cost 6 --threads 8
 build-integrated-ninja\neo-euclid.exe parabola-search --tangent --max-cost 2
 build-integrated-ninja\neo-euclid.exe parabola-search --max-cost 6 --mask LCCLCC
 build-integrated-ninja\neo-euclid.exe parabola-search --mitm --max-cost 7 --mask CLCLCLL
+build-integrated-ninja\neo-euclid.exe parabola-search --mitm --vertex-angle --sample-degree 60 --max-cost 7 --mask CLCLCLL
 build-integrated-ninja\neo-euclid.exe parabola-search --vertex-angle --max-cost 7
 build-integrated-ninja\neo-euclid.exe parabola-search --beam-search --beam 1000 --vertex-angle --max-cost 7
 ```

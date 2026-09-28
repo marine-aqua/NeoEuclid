@@ -23,7 +23,7 @@ void usage() {
                  "[--shared-min N] [--shared-max N] [--records N] "
                  "[--branch-attempts N] [--raw] [--quiet]\n"
                  "       neo-euclid parabola-search [--max-cost N] [--seconds N] "
-                 "[--threads N] [--prefix-depth N] [--samples 2|3] [--mask LCLC] "
+                 "[--threads N] [--prefix-depth N] [--samples 2|3] [--sample-degree N] [--mask LCLC] "
                  "[--beam-search] [--beam N] [--tangent] [--center-target] [--quiet]\n";
 }
 
@@ -46,7 +46,7 @@ int main(int argc, char** argv) {
             return EXIT_SUCCESS;
         }
         if (std::string(argv[1]) == "parabola-search") {
-            neo::parabola::SearchConfig config; bool tangent=false,mitm=false,beam_search=false; int samples=3;
+            neo::parabola::SearchConfig config; bool tangent=false,mitm=false,beam_search=false; int samples=3; std::vector<double> explicit_samples;
             for(int i=2;i<argc;++i){const std::string option=argv[i];
                 if(option=="--max-cost")config.max_cost=integer_value(argv,i,argc);
                 else if(option=="--seconds")config.time_limit_seconds=double_value(argv,i,argc);
@@ -54,6 +54,7 @@ int main(int argc, char** argv) {
                 else if(option=="--beam")config.beam_width=static_cast<std::size_t>(integer_value(argv,i,argc));
                 else if(option=="--prefix-depth")config.prefix_depth=integer_value(argv,i,argc);
                 else if(option=="--samples")samples=integer_value(argv,i,argc);
+                else if(option=="--sample-degree")explicit_samples.push_back(double_value(argv,i,argc));
                 else if(option=="--max-points")config.max_points=static_cast<std::size_t>(integer_value(argv,i,argc));
                 else if(option=="--max-states")config.max_states=static_cast<std::size_t>(integer_value(argv,i,argc));
                 else if(option=="--state-cache")config.state_cache_entries=static_cast<std::size_t>(integer_value(argv,i,argc));
@@ -71,7 +72,8 @@ int main(int argc, char** argv) {
                 else if(option=="--help"){usage();return EXIT_SUCCESS;}
                 else throw std::runtime_error("unknown option: "+option);
             }
-            if(config.target_k2_circle)config.search_degrees=samples==2?std::vector<double>{21,47}:std::vector<double>{17,33,49};
+            if(!explicit_samples.empty())config.search_degrees=std::move(explicit_samples);
+            else if(config.target_k2_circle)config.search_degrees=samples==2?std::vector<double>{21,47}:std::vector<double>{17,33,49};
             else if(config.angle_at_parabola_vertex)config.search_degrees=samples==2?std::vector<double>{23,71}:std::vector<double>{17,43,79};
             else if(samples==2)config.search_degrees={38,137};else if(samples!=3)throw std::runtime_error("samples must be 2 or 3");
             const auto report=tangent?neo::parabola::search_tangent(config):(mitm?neo::parabola::search_mitm(config):(beam_search?neo::parabola::search_beam(config):neo::parabola::search(config)));
