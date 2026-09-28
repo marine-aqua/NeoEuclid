@@ -6,6 +6,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 add_library(neo_euclid
+    src/engine/sample_batch.cpp
     src/geometry.cpp
     src/state.cpp
     src/search.cpp

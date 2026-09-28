@@ -1,5 +1,6 @@
 #pragma once
 
+#include "neo/engine/operation.hpp"
 #include "neo/geometry.hpp"
 
 #include <cstddef>
@@ -10,14 +11,7 @@
 
 namespace neo {
 
-enum class OperationKind {
-    Given,
-    LineThrough,
-    CircleCenterThrough,
-    PerpendicularBisector,
-    AngleBisector,
-    Intersection
-};
+using OperationKind = engine::OperationKind;
 
 struct RecipeNode {
     OperationKind kind{OperationKind::Given};

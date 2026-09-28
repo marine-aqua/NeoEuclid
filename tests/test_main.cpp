@@ -1,4 +1,6 @@
 #include "neo/geometry.hpp"
+#include "neo/engine/operation.hpp"
+#include "neo/engine/sample_batch.hpp"
 #include "neo/problems/fixed_angle.hpp"
 #include "neo/problems/obtuse.hpp"
 #include "neo/problems/parabola.hpp"
@@ -47,6 +49,42 @@ void test_circle_circle_tangent() {
 void test_quantized_keys() {
     check(neo::point_key({1.0, 2.0, 0}) == neo::point_key({1.0 + 1e-10, 2.0, 1}),
           "small numerical noise should merge");
+}
+
+void test_atomic_operation_model() {
+    using neo::engine::OperationKind;
+    using neo::engine::VisibilityPolicy;
+    check(neo::engine::operation_spec(OperationKind::LineThrough).atomic_cost == 1,
+          "a line is one atomic operation");
+    check(neo::engine::operation_spec(OperationKind::PerpendicularBisector).atomic_cost == 3,
+          "a perpendicular bisector costs three atomic operations");
+    check(neo::engine::operation_spec(OperationKind::PerpendicularBisector).visibility ==
+              VisibilityPolicy::SelectedHelpers,
+          "the perpendicular bisector may expose selected helpers");
+    check(neo::engine::operation_spec(OperationKind::AngleBisector).atomic_cost == 4,
+          "an angle bisector costs four atomic operations");
+}
+
+void test_sampled_ray_hit_classification() {
+    using namespace neo::engine;
+    const SampledPoints vertices{{0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}};
+    const SampledDirections directions{{1.0, 0.0, -1.0}, {0.0, 1.0, 0.0}};
+    const SampledPoints hits{{2.0, 0.0, -3.0}, {0.0, 4.0, 0.0}};
+    auto result = evaluate_target_rays(hits, vertices, directions, 1e-10, 1e-9);
+    check(result.classification == HitClass::Candidate && result.hits == 3,
+          "all sampled points should hit their forward rays");
+
+    const std::vector<std::uint8_t> degenerate{0, 1, 0};
+    result = evaluate_target_rays(hits, vertices, directions, 1e-10, 1e-9, degenerate);
+    check(result.classification == HitClass::CandidateWithDegeneracies &&
+              result.hits == 2 && result.degeneracies == 1,
+          "isolated degeneracies should be retained separately from misses");
+
+    auto misses = hits;
+    misses.y[0] = 0.1;
+    result = evaluate_target_rays(misses, vertices, directions, 1e-4, 1e-9);
+    check(result.classification == HitClass::Miss,
+          "a non-degenerate residual outside tolerance should miss");
 }
 
 void test_state_rejects_duplicate_curve() {
@@ -185,6 +223,8 @@ int main() {
         test_line_circle_intersection();
         test_circle_circle_tangent();
         test_quantized_keys();
+        test_atomic_operation_model();
+        test_sampled_ray_hit_classification();
         test_state_rejects_duplicate_curve();
         test_small_search_misses_target();
         test_known_72_degree_construction();
