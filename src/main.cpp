@@ -90,6 +90,12 @@ int main(int argc, char** argv) {
                      <<" mitm-records="<<report.mitm_records<<" mitm-matches="<<report.mitm_matches
                      <<" elapsed="<<report.elapsed_seconds<<"s\n";
             for(std::size_t i=0;i<report.steps.size();++i)std::cout<<"  "<<i+1<<". "<<report.steps[i]<<'\n';
+            if(!report.found&&!report.sample_only_steps.empty()){
+                std::cout<<"SAMPLE-ONLY candidate schema="<<report.sample_only_schema
+                         <<" mask="<<report.sample_only_mask<<'\n';
+                for(std::size_t i=0;i<report.sample_only_steps.size();++i)
+                    std::cout<<"  "<<i+1<<". "<<report.sample_only_steps[i]<<'\n';
+            }
             return report.found?EXIT_SUCCESS:2;
         }
         if (std::string(argv[1]) == "circumcircle-mitm") {

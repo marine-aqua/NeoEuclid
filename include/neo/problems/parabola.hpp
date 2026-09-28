@@ -53,6 +53,9 @@ struct SearchReport {
     std::size_t geometry_cache_entries{};
     std::size_t mitm_records{};
     std::size_t mitm_matches{};
+    std::vector<std::string> sample_only_steps;
+    std::string sample_only_schema;
+    std::string sample_only_mask;
     double elapsed_seconds{};
 };
 

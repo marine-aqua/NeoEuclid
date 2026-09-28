@@ -109,10 +109,14 @@ single-threaded; `--threads` continues to apply to the prefix/DFS engine.
 
 For a seven-operation MITM mask ending in `L`, the engine interprets the mask
 as `shared[0:2] | left[2:4] | right[4:6] | final L`. A six-operation mask uses
-`shared[0:1] | left[1:3] | right[3:5] | final L`. Both arms are enumerated
+`shared[0:1] | left[1:3] | right[3:5] | final L`; a five-operation mask uses
+`left[0:2] | right[2:4] | final L` directly from the givens. Both arms are enumerated
 independently from the same shared prefix and indexed by their stable
 intersection with the target trisector ray. A match is accepted only for two
 distinct transverse curves and is replayed on the dense validation grid.
+The first sparse-sample hit rejected by dense replay is retained as a
+`SAMPLE-ONLY` candidate so special-angle constructions can be studied rather
+than discarded.
 
 `--vertex-angle` keeps the horizontal parabola `y^2=4x` but moves the angle
 vertex from its focus to the parabola vertex `O`. It restricts the input to
