@@ -279,6 +279,23 @@ void test_parabola_weighted_macros_smoke() {
           "weighted perpendicular, bisector, parallel, and angle macros should generate candidates");
 }
 
+void test_parabola_cost_six_mitm_smoke() {
+    neo::parabola::SearchConfig config;
+    config.max_cost = 6;
+    config.threads = 2;
+    config.time_limit_seconds = 1.0;
+    config.max_states = 5000;
+    config.state_cache_entries = 0;
+    config.geometry_cache_entries = 2000;
+    config.search_degrees = {60.0};
+    config.angle_at_parabola_vertex = true;
+    config.masks = {"CLCLCL"};
+    config.verbose = false;
+    const auto report = neo::parabola::search_mitm(config);
+    check(report.prefixes > 0 && report.mitm_records > 0,
+          "six-operation MITM should enumerate its one-step shared prefix and arms");
+}
+
 void test_parabola_beam_smoke() {
     neo::parabola::SearchConfig config;
     config.max_cost = 1;
@@ -313,6 +330,7 @@ int main() {
         test_obtuse_mitm_smoke();
         test_parallel_parabola_terminal_schemas();
         test_parabola_mitm_smoke();
+        test_parabola_cost_six_mitm_smoke();
         test_parabola_weighted_macros_smoke();
         test_parabola_beam_smoke();
         std::cout << "All tests passed\n";
