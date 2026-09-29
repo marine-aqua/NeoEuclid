@@ -10,8 +10,11 @@ enum class OperationKind {
     PerpendicularThrough,
     ParallelThrough,
     AngleBisector,
+    TransferCircle,
     Intersection
 };
+
+enum class CostPolicy { Atomic, Euclidea };
 
 enum class VisibilityPolicy {
     FinalOnly,
@@ -39,8 +42,15 @@ constexpr OperationSpec operation_spec(OperationKind kind) noexcept {
         case OperationKind::ParallelThrough:
         case OperationKind::AngleBisector:
             return {4, VisibilityPolicy::FinalOnly};
+        case OperationKind::TransferCircle:
+            return {5, VisibilityPolicy::FinalOnly};
     }
     return {};
+}
+
+constexpr int operation_cost(OperationKind kind, CostPolicy policy) noexcept {
+    if (kind == OperationKind::Given || kind == OperationKind::Intersection) return 0;
+    return policy == CostPolicy::Euclidea ? 1 : operation_spec(kind).atomic_cost;
 }
 
 }  // namespace neo::engine

@@ -14,6 +14,7 @@ struct SearchConfig {
     std::size_t max_points{28};
     bool use_macros{true};
     bool verbose{true};
+    engine::CostPolicy cost_policy{engine::CostPolicy::Atomic};
 };
 
 struct Goal {
@@ -41,4 +42,3 @@ std::optional<SearchResult> beam_search(const SearchProblem& problem,
                                         const SearchConfig& config);
 
 }  // namespace neo
-

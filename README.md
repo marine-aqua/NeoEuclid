@@ -88,6 +88,14 @@ perpendicular through a point (cost 3), `B` for a perpendicular bisector
 angle bisector of two lines (cost 4). Only the resulting line is exposed to
 later operations; the macro's internal construction objects are not reusable.
 
+Cost is selected independently from operation semantics. The default
+`Atomic` policy charges `L/C/B/N/P/A/T` as `1/1/3/3/4/4/5`. The optional
+`--euclidea-cost` policy charges every drawable operation one step while
+preserving the same inputs, outputs, and hidden-helper visibility. `T` is a
+transferred-radius circle: two points define the radius and a third point is
+its center. In parabola beam search, Euclidea mode enables all seven operation
+families even when no explicit masks are supplied.
+
 ```powershell
 build-integrated-ninja\neo-euclid.exe parabola-search --max-cost 6 --threads 8
 build-integrated-ninja\neo-euclid.exe parabola-search --tangent --max-cost 2
@@ -96,7 +104,30 @@ build-integrated-ninja\neo-euclid.exe parabola-search --mitm --max-cost 7 --mask
 build-integrated-ninja\neo-euclid.exe parabola-search --mitm --vertex-angle --sample-degree 60 --max-cost 7 --mask CLCLCLL
 build-integrated-ninja\neo-euclid.exe parabola-search --vertex-angle --max-cost 7
 build-integrated-ninja\neo-euclid.exe parabola-search --beam-search --beam 1000 --vertex-angle --max-cost 7
+build-integrated-ninja\neo-euclid.exe parabola-search --beam-search --e-target --euclidea-cost --max-cost 6
+build-integrated-ninja\neo-euclid.exe parabola-search --mitm --e-target --euclidea-cost --max-cost 6
+build-integrated-ninja\neo-euclid.exe parabola-search --beam-search --five-step-e-prefix --no-transfer --max-cost 3 --beam 500
+build-integrated-ninja\neo-euclid.exe parabola-search --exhaustive-cost4-e-mitm
+build-integrated-ninja\neo-euclid.exe parabola-search --exhaustive-cost4-e-sequential --seconds 14400 --threads 8
 ```
+
+`--five-step-e-prefix` reconstructs and retains the complete verified
+five-operation construction of `E=(8,-4 sin(alpha))`, including all its
+auxiliary curves and intersections. It then resets only the suffix cost, so
+`--max-cost 3` searches for three additional Euclidea operations. Dense
+verification still replays the full prefix and suffix from the original
+givens.
+
+The two cost-four `E` modes exclude transferred circles. The MITM mode
+exhausts the `2 shared + 1 left + 1 right` terminal layout. The sequential
+mode streams all dependent paths through four operations and honors the
+configured time limit.
+
+For the Euclidea `E`-point target, MITM needs no explicit masks. It dynamically
+uses `L/C/B/N/P/A` (deliberately excluding the cubic-branching transferred
+circle `T`) and splits cost six as two shared operations plus two operations
+on each arm. The two terminal curves must meet transversely at `E`; their
+intersection is free.
 
 The `--tangent` target is a regression oracle: it must rediscover
 `circle(F;P)` followed by joining `P` to the circle's left intersection with

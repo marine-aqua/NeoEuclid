@@ -48,11 +48,11 @@ public:
 
             std::unordered_map<std::string, State> generated;
             for (const auto& state : states) {
-                for (const auto& candidate : candidate_curves(state, config_.use_macros)) {
+                for (const auto& candidate : candidate_curves(state, config_.use_macros, config_.cost_policy)) {
                     if (state.cost + candidate.cost > config_.shared_cost) continue;
                     ++stats_.generated;
                     auto child = add_curve(state, candidate,
-                                           {config_.max_points, config_.use_macros, 8});
+                                           {config_.max_points, config_.use_macros, 8, config_.cost_policy});
                     if (!child) continue;
                     child->score = problem_.score(*child);
                     const auto key = state_key(*child, 7);
@@ -91,14 +91,14 @@ public:
 
         auto enumerate = [&](auto&& self, const State& state, int spent) -> void {
             if (spent >= config_.arm_cost) return;
-            for (const auto& candidate : candidate_curves(state, config_.use_macros)) {
+            for (const auto& candidate : candidate_curves(state, config_.use_macros, config_.cost_policy)) {
                 const int next_spent = spent + candidate.cost;
                 if (next_spent > config_.arm_cost ||
                     base.cost + next_spent + 1 > config_.max_cost)
                     continue;
                 ++stats_.generated;
                 auto child = add_curve(state, candidate,
-                                       {config_.max_points, config_.use_macros, 8});
+                                       {config_.max_points, config_.use_macros, 8, config_.cost_policy});
                 if (!child) continue;
                 const auto key = state_key(*child, 7);
                 if (!seen.insert(key).second) {

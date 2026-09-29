@@ -24,6 +24,7 @@ std::string operation_name(OperationKind kind) {
         case OperationKind::PerpendicularThrough: return "perpendicular";
         case OperationKind::ParallelThrough: return "parallel";
         case OperationKind::AngleBisector: return "angle-bisector";
+        case OperationKind::TransferCircle: return "transfer-circle";
         case OperationKind::Intersection: return "intersect";
         case OperationKind::Given: return "given";
     }
@@ -32,16 +33,17 @@ std::string operation_name(OperationKind kind) {
 
 }  // namespace
 
-std::vector<Candidate> candidate_curves(const State& state, bool use_macros) {
+std::vector<Candidate> candidate_curves(const State& state, bool use_macros,
+                                        engine::CostPolicy cost_policy) {
     std::vector<Candidate> result;
-    constexpr int line_cost =
-        engine::operation_spec(OperationKind::LineThrough).atomic_cost;
-    constexpr int circle_cost =
-        engine::operation_spec(OperationKind::CircleCenterThrough).atomic_cost;
-    constexpr int bisector_cost =
-        engine::operation_spec(OperationKind::PerpendicularBisector).atomic_cost;
-    constexpr int angle_bisector_cost =
-        engine::operation_spec(OperationKind::AngleBisector).atomic_cost;
+    const int line_cost =
+        engine::operation_cost(OperationKind::LineThrough, cost_policy);
+    const int circle_cost =
+        engine::operation_cost(OperationKind::CircleCenterThrough, cost_policy);
+    const int bisector_cost =
+        engine::operation_cost(OperationKind::PerpendicularBisector, cost_policy);
+    const int angle_bisector_cost =
+        engine::operation_cost(OperationKind::AngleBisector, cost_policy);
     for (std::size_t i = 0; i < state.points.size(); ++i) {
         for (std::size_t j = i + 1; j < state.points.size(); ++j) {
             const auto& first = state.points[i];
@@ -143,6 +145,7 @@ std::string describe_recipe(const State& state, std::uint32_t recipe_id) {
         case OperationKind::PerpendicularThrough: return "perpendicular(" + first + ", " + second + ")";
         case OperationKind::ParallelThrough: return "parallel(" + first + ", " + second + ")";
         case OperationKind::AngleBisector: return "angle-bisector(" + first + ", " + second + ")";
+        case OperationKind::TransferCircle: return "transfer-circle(" + first + ", " + second + ")";
         case OperationKind::Intersection: return "intersect(" + first + ", " + second + ")";
         case OperationKind::Given: break;
     }

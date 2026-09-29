@@ -15,6 +15,7 @@ struct FixedAngleMitmConfig {
     std::size_t max_states{2'000'000};
     double time_limit_seconds{60.0};
     bool use_macros{false};
+    engine::CostPolicy cost_policy{engine::CostPolicy::Atomic};
 };
 
 std::optional<SearchResult> fixed_angle_mitm(double target_degrees,

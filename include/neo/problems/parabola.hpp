@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <string>
 #include <vector>
+#include "neo/engine/operation.hpp"
 
 namespace neo::parabola {
 
@@ -24,6 +25,16 @@ struct SearchConfig {
     bool verbose{true};
     bool angle_at_parabola_vertex{false};
     bool target_circle_center{false};
+    bool target_e_point{false};
+    neo::engine::CostPolicy cost_policy{neo::engine::CostPolicy::Atomic};
+    bool allow_transfer_circle{true};
+    bool exhaustive_311{false};
+    // Start from the retained five-step E construction, but charge only the
+    // subsequent search operations. Dense replay still verifies all steps.
+    bool retain_five_step_e_prefix{false};
+    bool exhaustive_three_after_e{false};
+    bool exhaustive_cost4_e_mitm{false};
+    bool exhaustive_cost4_e_sequential{false};
     bool require_bisector_use{false};
     bool target_k2_circle{false};
     double validation_max_degrees{0.0};

@@ -32,11 +32,11 @@ std::optional<SearchResult> beam_search(const SearchProblem& problem,
         for (const auto& state : states) {
             ++total_expanded;
             std::unordered_set<QuantizedCurve, CurveKeyHash> local;
-            for (const auto& candidate : candidate_curves(state, config.use_macros)) {
+            for (const auto& candidate : candidate_curves(state, config.use_macros, config.cost_policy)) {
                 if (state.cost + candidate.cost > config.max_cost) continue;
                 if (!local.insert(curve_key(candidate.curve, 7)).second) continue;
                 auto child = add_curve(state, candidate,
-                                       {config.max_points, config.use_macros, 8});
+                                       {config.max_points, config.use_macros, 8, config.cost_policy});
                 if (!child) continue;
                 child->score = problem.score(*child);
                 ++total_generated;
@@ -66,4 +66,3 @@ std::optional<SearchResult> beam_search(const SearchProblem& problem,
 }
 
 }  // namespace neo
-

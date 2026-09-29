@@ -62,6 +62,14 @@ int main(int argc, char** argv) {
                 else if(option=="--mask")config.masks.push_back(argv[++i]);
                 else if(option=="--tangent")tangent=true;
                 else if(option=="--center-target"){config.target_circle_center=true;config.angle_at_parabola_vertex=true;}
+                else if(option=="--e-target"){config.target_e_point=true;config.angle_at_parabola_vertex=true;}
+                else if(option=="--euclidea-cost")config.cost_policy=neo::engine::CostPolicy::Euclidea;
+                else if(option=="--no-transfer")config.allow_transfer_circle=false;
+                else if(option=="--exhaustive-311"){config.exhaustive_311=true;config.target_e_point=true;config.angle_at_parabola_vertex=true;config.cost_policy=neo::engine::CostPolicy::Euclidea;}
+                else if(option=="--five-step-e-prefix"){config.retain_five_step_e_prefix=true;config.angle_at_parabola_vertex=true;config.cost_policy=neo::engine::CostPolicy::Euclidea;}
+                else if(option=="--exhaustive-three-after-e"){beam_search=true;config.exhaustive_three_after_e=true;config.retain_five_step_e_prefix=true;config.allow_transfer_circle=false;config.angle_at_parabola_vertex=true;config.cost_policy=neo::engine::CostPolicy::Euclidea;config.max_cost=3;}
+                else if(option=="--exhaustive-cost4-e-mitm"){mitm=true;config.exhaustive_cost4_e_mitm=true;config.target_e_point=true;config.allow_transfer_circle=false;config.angle_at_parabola_vertex=true;config.cost_policy=neo::engine::CostPolicy::Euclidea;config.max_cost=4;}
+                else if(option=="--exhaustive-cost4-e-sequential"){beam_search=true;config.exhaustive_cost4_e_sequential=true;config.target_e_point=true;config.allow_transfer_circle=false;config.angle_at_parabola_vertex=true;config.cost_policy=neo::engine::CostPolicy::Euclidea;config.max_cost=4;}
                 else if(option=="--require-bisector")config.require_bisector_use=true;
                 else if(option=="--k2-circle"){config.target_k2_circle=true;config.angle_at_parabola_vertex=true;config.validation_max_degrees=53.;}
                 else if(option=="--mitm")mitm=true;
@@ -125,6 +133,7 @@ int main(int argc, char** argv) {
                 else if (option == "--max-states") config.max_states = static_cast<std::size_t>(integer_value(argv, i, argc));
                 else if (option == "--seconds") config.time_limit_seconds = double_value(argv, i, argc);
                 else if (option == "--macros") config.use_macros = true;
+                else if (option == "--euclidea-cost") config.cost_policy = neo::engine::CostPolicy::Euclidea;
                 else if (option == "--help") { usage(); return EXIT_SUCCESS; }
                 else throw std::runtime_error("unknown option: " + option);
             }
@@ -206,6 +215,7 @@ int main(int argc, char** argv) {
             else if (option == "--beam") config.beam_width = static_cast<std::size_t>(integer_value(argv, i, argc));
             else if (option == "--max-points") config.max_points = static_cast<std::size_t>(integer_value(argv, i, argc));
             else if (option == "--no-macros") config.use_macros = false;
+            else if (option == "--euclidea-cost") config.cost_policy = neo::engine::CostPolicy::Euclidea;
             else if (option == "--quiet") config.verbose = false;
             else if (option == "--help") { usage(); return EXIT_SUCCESS; }
             else throw std::runtime_error("unknown option: " + option);

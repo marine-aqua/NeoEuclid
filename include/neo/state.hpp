@@ -41,9 +41,11 @@ struct ExpansionOptions {
     std::size_t max_points{28};
     bool use_macros{true};
     int key_digits{8};
+    engine::CostPolicy cost_policy{engine::CostPolicy::Atomic};
 };
 
-std::vector<Candidate> candidate_curves(const State& state, bool use_macros);
+std::vector<Candidate> candidate_curves(const State& state, bool use_macros,
+                                        engine::CostPolicy cost_policy = engine::CostPolicy::Atomic);
 std::optional<State> add_curve(const State& parent, const Candidate& candidate,
                                const ExpansionOptions& options);
 std::string state_key(const State& state, int digits = 7);

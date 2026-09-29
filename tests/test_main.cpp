@@ -66,6 +66,14 @@ void test_atomic_operation_model() {
           "the perpendicular bisector may expose selected helpers");
     check(neo::engine::operation_spec(OperationKind::AngleBisector).atomic_cost == 4,
           "an angle bisector costs four atomic operations");
+    check(neo::engine::operation_spec(OperationKind::TransferCircle).atomic_cost == 5,
+          "a transferred-radius circle costs five atomic operations");
+    for (const auto kind : {OperationKind::LineThrough, OperationKind::CircleCenterThrough,
+                            OperationKind::PerpendicularBisector, OperationKind::PerpendicularThrough,
+                            OperationKind::ParallelThrough, OperationKind::AngleBisector,
+                            OperationKind::TransferCircle})
+        check(neo::engine::operation_cost(kind, neo::engine::CostPolicy::Euclidea) == 1,
+              "every drawable operation costs one in Euclidea mode");
 }
 
 void test_sampled_ray_hit_classification() {
@@ -313,6 +321,23 @@ void test_parabola_cost_five_mitm_smoke() {
           "five-operation MITM should enumerate both arms directly from the givens");
 }
 
+void test_parabola_cost_eight_mitm_smoke() {
+    neo::parabola::SearchConfig config;
+    config.max_cost = 8;
+    config.threads = 2;
+    config.time_limit_seconds = 1.0;
+    config.max_states = 5000;
+    config.state_cache_entries = 0;
+    config.geometry_cache_entries = 2000;
+    config.search_degrees = {60.0};
+    config.angle_at_parabola_vertex = true;
+    config.masks = {"LLLCLCLL"};
+    config.verbose = false;
+    const auto report = neo::parabola::search_mitm(config);
+    check(report.prefixes > 0 && report.generated > 0,
+          "eight-operation MITM should enumerate its three-step shared prefix");
+}
+
 void test_parabola_beam_smoke() {
     neo::parabola::SearchConfig config;
     config.max_cost = 1;
@@ -324,6 +349,39 @@ void test_parabola_beam_smoke() {
     const auto report = neo::parabola::search_beam(config);
     check(report.expanded > 0 && report.generated > 0,
           "parabola beam should expand and generate states");
+}
+
+void test_five_step_e_prefix_replay() {
+    neo::parabola::SearchConfig config;
+    config.max_cost = 0;
+    config.beam_width = 1;
+    config.max_points = 80;
+    config.time_limit_seconds = 1.0;
+    config.search_degrees = {17.0, 43.0, 79.0};
+    config.retain_five_step_e_prefix = true;
+    config.angle_at_parabola_vertex = true;
+    config.cost_policy = neo::engine::CostPolicy::Euclidea;
+    config.verbose = false;
+    const auto report = neo::parabola::search_beam(config);
+    check(report.expanded == 1 && report.generated == 0,
+          "five-step E prefix should reconstruct as the sole zero-suffix state");
+}
+
+void test_parabola_dynamic_euclidea_mitm_smoke() {
+    neo::parabola::SearchConfig config;
+    config.max_cost = 6;
+    config.beam_width = 10;
+    config.max_states = 2000;
+    config.time_limit_seconds = 1.0;
+    config.threads = 2;
+    config.search_degrees = {17.0, 43.0, 79.0};
+    config.angle_at_parabola_vertex = true;
+    config.target_e_point = true;
+    config.cost_policy = neo::engine::CostPolicy::Euclidea;
+    config.verbose = false;
+    const auto report = neo::parabola::search_mitm(config);
+    check(report.prefixes > 0 && report.generated > 0,
+          "dynamic Euclidea MITM should build shared prefixes without explicit masks");
 }
 
 }  // namespace
@@ -349,8 +407,11 @@ int main() {
         test_parabola_mitm_smoke();
         test_parabola_cost_six_mitm_smoke();
         test_parabola_cost_five_mitm_smoke();
+        test_parabola_cost_eight_mitm_smoke();
         test_parabola_weighted_macros_smoke();
         test_parabola_beam_smoke();
+        test_five_step_e_prefix_replay();
+        test_parabola_dynamic_euclidea_mitm_smoke();
         std::cout << "All tests passed\n";
         return 0;
     } catch (const std::exception& error) {

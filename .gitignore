@@ -12,6 +12,10 @@
 /campaign-runner.out
 /campaign-runner.err
 /campaign-runner.pid
+/*.out
+/*.err
+/*.pid
+/*-openbayes-*.zip
 /mitm-results/
 /long-runs/
 /mask-runs-*/

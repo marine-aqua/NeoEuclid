@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.16)
 project(NeoEuclidSearch VERSION 0.1.0 LANGUAGES CXX)
 
+set(THREADS_PREFER_PTHREAD_FLAG ON)
+find_package(Threads REQUIRED)
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -17,6 +20,7 @@ add_library(neo_euclid
     src/problems/circumcircle.cpp
 )
 target_include_directories(neo_euclid PUBLIC include)
+target_link_libraries(neo_euclid PUBLIC Threads::Threads)
 if(MSVC)
     target_compile_options(neo_euclid PRIVATE /W4 /permissive-)
 else()
