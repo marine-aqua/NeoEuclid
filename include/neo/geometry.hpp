@@ -65,9 +65,19 @@ std::optional<Line> line_through(const Point& first, const Point& second,
 std::optional<Circle> circle_center_through(const Point& center,
                                             const Point& through,
                                             std::uint32_t recipe = 0);
+// The rigid compass: the circle about a point whose radius is the length of a
+// segment given elsewhere.  The soft compass is `circle_center_through`.
+std::optional<Circle> transfer_circle(const Point& center, const Point& from,
+                                      const Point& to, std::uint32_t recipe = 0);
 std::optional<Line> perpendicular_bisector(const Point& first,
                                            const Point& second,
                                            std::uint32_t recipe = 0);
+// The perpendicular to a line through a point, and the parallel to a line
+// through a point.
+std::optional<Line> perpendicular_through(const Point& point, const Line& line,
+                                          std::uint32_t recipe = 0);
+std::optional<Line> parallel_through(const Point& point, const Line& line,
+                                     std::uint32_t recipe = 0);
 std::vector<Line> angle_bisectors(const Line& first, const Line& second,
                                   std::uint32_t first_recipe = 0,
                                   std::uint32_t second_recipe = 0);

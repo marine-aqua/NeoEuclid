@@ -114,6 +114,36 @@ std::optional<Line> perpendicular_bisector(const Point& first,
     return Line{a, b, c, recipe};
 }
 
+std::optional<Circle> transfer_circle(const Point& center, const Point& from,
+                                      const Point& to, std::uint32_t recipe) {
+    const double radius = std::hypot(from.x - to.x, from.y - to.y);
+    if (radius < kEpsilon || !std::isfinite(radius)) return std::nullopt;
+    return Circle{center.x, center.y, radius, recipe};
+}
+
+std::optional<Line> perpendicular_through(const Point& point, const Line& line,
+                                          std::uint32_t recipe) {
+    // The normal of the line is the direction of the perpendicular to it.
+    double a = line.b;
+    double b = -line.a;
+    double c = -(a * point.x + b * point.y);
+    if (a < -kEpsilon || (std::abs(a) <= kEpsilon && b < 0.0)) {
+        a = -a; b = -b; c = -c;
+    }
+    return Line{a, b, c, recipe};
+}
+
+std::optional<Line> parallel_through(const Point& point, const Line& line,
+                                     std::uint32_t recipe) {
+    double a = line.a;
+    double b = line.b;
+    double c = -(a * point.x + b * point.y);
+    if (a < -kEpsilon || (std::abs(a) <= kEpsilon && b < 0.0)) {
+        a = -a; b = -b; c = -c;
+    }
+    return Line{a, b, c, recipe};
+}
+
 std::vector<Line> angle_bisectors(const Line& first, const Line& second,
                                   std::uint32_t first_recipe,
                                   std::uint32_t second_recipe) {

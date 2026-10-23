@@ -84,6 +84,106 @@ std::vector<Candidate> candidate_curves(const State& state, bool use_macros,
     return result;
 }
 
+std::vector<Candidate> candidate_operations(const State& state, engine::Mode mode,
+                                             bool use_macros) {
+    if (mode == engine::Mode::Classic)
+        return candidate_curves(state, use_macros, engine::CostPolicy::Atomic);
+
+    // The All model: every operation of the model is one step, and the figure
+    // offers every one of them.
+    std::vector<Candidate> result;
+    const auto price = [&mode](OperationKind kind) {
+        return engine::operation_cost(kind, mode);
+    };
+    const std::size_t points = state.points.size();
+    for (std::size_t i = 0; i < points; ++i) {
+        for (std::size_t j = i + 1; j < points; ++j) {
+            const auto& first = state.points[i];
+            const auto& second = state.points[j];
+            if (auto line = line_through(first, second))
+                result.push_back({*line, price(OperationKind::LineThrough),
+                                  OperationKind::LineThrough, first.recipe,
+                                  second.recipe});
+            if (auto circle = circle_center_through(first, second))
+                result.push_back({*circle, price(OperationKind::CircleCenterThrough),
+                                  OperationKind::CircleCenterThrough, first.recipe,
+                                  second.recipe});
+            if (auto circle = circle_center_through(second, first))
+                result.push_back({*circle, price(OperationKind::CircleCenterThrough),
+                                  OperationKind::CircleCenterThrough, second.recipe,
+                                  first.recipe});
+            if (auto line = perpendicular_bisector(first, second))
+                result.push_back({*line, price(OperationKind::PerpendicularBisector),
+                                  OperationKind::PerpendicularBisector, first.recipe,
+                                  second.recipe});
+            // The rigid compass: the circle about a point whose radius is the
+            // length of a segment of the figure.
+            for (std::size_t k = 0; k < points; ++k) {
+                if (k == i || k == j) continue;
+                const auto& third = state.points[k];
+                if (auto circle = transfer_circle(first, second, third))
+                    result.push_back({*circle, price(OperationKind::TransferCircle),
+                                      OperationKind::TransferCircle, first.recipe,
+                                      second.recipe, third.recipe});
+            }
+        }
+    }
+    // The perpendicular and the parallel to a line of the figure, through a
+    // point of the figure.
+    for (std::size_t i = 0; i < points; ++i) {
+        const auto& point = state.points[i];
+        for (const auto& curve : state.curves) {
+            const auto* line = std::get_if<Line>(&curve);
+            if (!line) continue;
+            if (auto perpendicular = perpendicular_through(point, *line))
+                result.push_back({*perpendicular,
+                                  price(OperationKind::PerpendicularThrough),
+                                  OperationKind::PerpendicularThrough, point.recipe,
+                                  curve_recipe(curve)});
+            if (auto parallel = parallel_through(point, *line))
+                result.push_back({*parallel, price(OperationKind::ParallelThrough),
+                                  OperationKind::ParallelThrough, point.recipe,
+                                  curve_recipe(curve)});
+        }
+    }
+    // The two bisectors of every angle of two lines of the figure.
+    for (std::size_t i = 0; i < state.curves.size(); ++i) {
+        const auto* first = std::get_if<Line>(&state.curves[i]);
+        if (!first) continue;
+        for (std::size_t j = i + 1; j < state.curves.size(); ++j) {
+            const auto* second = std::get_if<Line>(&state.curves[j]);
+            if (!second) continue;
+            for (const auto& line : angle_bisectors(*first, *second))
+                result.push_back({line, price(OperationKind::AngleBisector),
+                                  OperationKind::AngleBisector, first->recipe,
+                                  second->recipe});
+        }
+    }
+    return result;
+}
+
+std::vector<CrossingCandidate> candidate_crossings(const State& state) {
+    std::vector<CrossingCandidate> result;
+    for (std::size_t i = 0; i < state.curves.size(); ++i) {
+        for (std::size_t j = i + 1; j < state.curves.size(); ++j) {
+            const auto hits = intersections(state.curves[i], state.curves[j]);
+            for (std::size_t k = 0; k < hits.size(); ++k) {
+                CrossingCandidate candidate;
+                candidate.point = hits[k];
+                candidate.cost = engine::operation_cost(OperationKind::Intersection,
+                                                        engine::Mode::All);
+                candidate.first = curve_recipe(state.curves[i]);
+                candidate.second = curve_recipe(state.curves[j]);
+                candidate.first_curve = i;
+                candidate.second_curve = j;
+                candidate.which = static_cast<int>(k);
+                result.push_back(candidate);
+            }
+        }
+    }
+    return result;
+}
+
 std::optional<State> add_curve(const State& parent, const Candidate& candidate,
                                const ExpansionOptions& options) {
     std::unordered_set<QuantizedCurve, CurveKeyHash> known_curves;
@@ -95,6 +195,7 @@ std::optional<State> add_curve(const State& parent, const Candidate& candidate,
     operation.kind = candidate.operation;
     operation.first = candidate.first;
     operation.second = candidate.second;
+    operation.third = candidate.third;
     operation.label = operation_name(operation.kind);
     const std::uint32_t operation_id = static_cast<std::uint32_t>(child.recipes.size());
     child.recipes.push_back(std::move(operation));
@@ -102,19 +203,42 @@ std::optional<State> add_curve(const State& parent, const Candidate& candidate,
 
     std::unordered_set<QuantizedPoint, PointKeyHash> known_points;
     for (const auto& point : child.points) known_points.insert(point_key(point, options.key_digits));
-    for (const auto& old : parent.curves) {
-        for (auto point : intersections(new_curve, old)) {
-            if (!known_points.insert(point_key(point, options.key_digits)).second) continue;
-            if (child.points.size() + 1 > options.max_points) return std::nullopt;
-            const auto recipe_id = static_cast<std::uint32_t>(child.recipes.size());
-            child.recipes.push_back({OperationKind::Intersection, operation_id,
-                                     curve_recipe(old), ""});
-            point.recipe = recipe_id;
-            child.points.push_back(point);
+    // In the All model a crossing is an operation of its own, and the figure
+    // gets it only when the search asks for it and pays for it.
+    if (options.mode == engine::Mode::Classic) {
+        for (const auto& old : parent.curves) {
+            for (auto point : intersections(new_curve, old)) {
+                if (!known_points.insert(point_key(point, options.key_digits)).second) continue;
+                if (child.points.size() + 1 > options.max_points) return std::nullopt;
+                const auto recipe_id = static_cast<std::uint32_t>(child.recipes.size());
+                child.recipes.push_back({OperationKind::Intersection, operation_id,
+                                         curve_recipe(old), ""});
+                point.recipe = recipe_id;
+                child.points.push_back(point);
+            }
         }
     }
     child.curves.push_back(new_curve);
     child.steps.push_back(operation_id);
+    child.cost += candidate.cost;
+    return child;
+}
+
+std::optional<State> add_crossing(const State& parent, const CrossingCandidate& candidate,
+                                   const ExpansionOptions& options) {
+    State child = parent;
+    std::unordered_set<QuantizedPoint, PointKeyHash> known_points;
+    for (const auto& point : child.points)
+        known_points.insert(point_key(point, options.key_digits));
+    if (known_points.count(point_key(candidate.point, options.key_digits))) return std::nullopt;
+    if (child.points.size() + 1 > options.max_points) return std::nullopt;
+    const auto recipe_id = static_cast<std::uint32_t>(child.recipes.size());
+    child.recipes.push_back({OperationKind::Intersection, candidate.first,
+                             candidate.second, ""});
+    Point point = candidate.point;
+    point.recipe = recipe_id;
+    child.points.push_back(point);
+    child.steps.push_back(recipe_id);
     child.cost += candidate.cost;
     return child;
 }
@@ -145,7 +269,7 @@ std::string describe_recipe(const State& state, std::uint32_t recipe_id) {
         case OperationKind::PerpendicularThrough: return "perpendicular(" + first + ", " + second + ")";
         case OperationKind::ParallelThrough: return "parallel(" + first + ", " + second + ")";
         case OperationKind::AngleBisector: return "angle-bisector(" + first + ", " + second + ")";
-        case OperationKind::TransferCircle: return "transfer-circle(" + first + ", " + second + ")";
+        case OperationKind::TransferCircle: return "transfer-circle(" + first + ", " + second + ", " + describe_recipe(state, node.third) + ")";
         case OperationKind::Intersection: return "intersect(" + first + ", " + second + ")";
         case OperationKind::Given: break;
     }

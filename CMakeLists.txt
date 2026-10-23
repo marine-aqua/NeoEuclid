@@ -10,6 +10,8 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 add_library(neo_euclid
     src/engine/sample_batch.cpp
+    src/engine/goal_search.cpp
+    src/engine/exhaustive_walk.cpp
     src/geometry.cpp
     src/state.cpp
     src/search.cpp
