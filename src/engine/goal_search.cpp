@@ -588,37 +588,50 @@ bool extend_state(const State& parent, const GCurve& curve, const Step& step, St
 }
 
 // The curve of one step of a recipe.
+//
+// The places of a step are of two kinds, and every operation says which kind
+// each of them is: the two atomic operations and the bisector of a segment
+// name points, the perpendicular and the parallel name a point and a curve,
+// the bisector of an angle names two curves.  The indices are therefore
+// checked against the number of points or against the number of curves, as
+// the operation says, and not all of them against the number of points.
 bool curve_of_step(const State& state, const Step& step, GCurve& curve) {
-    const int count = static_cast<int>(state.points.size());
-    if (step.first < 0 || step.first >= count) return false;
-    if (step.second < 0 || step.second >= count) return false;
-    const GPoint first = state.points[step.first];
-    const GPoint second = state.points[step.second];
+    const int points = static_cast<int>(state.points.size());
+    const int curves = static_cast<int>(state.curves.size());
+    if (step.first < 0) return false;
     switch (step.op) {
         case Op::Legacy:
-            curve = step.type == 0 ? make_line(first, second) : make_circle(first, second);
+            if (step.first >= points || step.second < 0 || step.second >= points) return false;
+            curve = step.type == 0 ? make_line(state.points[step.first], state.points[step.second])
+                                   : make_circle(state.points[step.first], state.points[step.second]);
             return true;
         case Op::TransferCircle: {
-            if (step.third < 0 || step.third >= count) return false;
-            curve = fast::make_transfer_circle(first, second, state.points[step.third]);
+            if (step.first >= points || step.second < 0 || step.second >= points) return false;
+            if (step.third < 0 || step.third >= points) return false;
+            curve = fast::make_transfer_circle(state.points[step.first], state.points[step.second],
+                                               state.points[step.third]);
             return true;
         }
         case Op::PerpendicularBisector:
-            curve = fast::make_perpendicular_bisector(first, second);
+            if (step.first >= points || step.second < 0 || step.second >= points) return false;
+            curve = fast::make_perpendicular_bisector(state.points[step.first],
+                                                       state.points[step.second]);
             return true;
         case Op::PerpendicularThrough: {
-            if (step.second < 0 || step.second >= static_cast<int>(state.curves.size())) return false;
-            curve = fast::make_perpendicular_through(first, state.curves[step.second]);
+            if (step.first >= points) return false;
+            if (step.second < 0 || step.second >= curves) return false;
+            curve = fast::make_perpendicular_through(state.points[step.first],
+                                                      state.curves[step.second]);
             return true;
         }
         case Op::ParallelThrough: {
-            if (step.second < 0 || step.second >= static_cast<int>(state.curves.size())) return false;
-            curve = fast::make_parallel_through(first, state.curves[step.second]);
+            if (step.first >= points) return false;
+            if (step.second < 0 || step.second >= curves) return false;
+            curve = fast::make_parallel_through(state.points[step.first], state.curves[step.second]);
             return true;
         }
         case Op::AngleBisector: {
-            if (step.first < 0 || step.first >= static_cast<int>(state.curves.size())) return false;
-            if (step.second < 0 || step.second >= static_cast<int>(state.curves.size())) return false;
+            if (step.first >= curves || step.second < 0 || step.second >= curves) return false;
             GCurve bisectors[2];
             const int number = fast::make_angle_bisectors(state.curves[step.first],
                                                           state.curves[step.second], bisectors);

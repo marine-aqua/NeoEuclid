@@ -1,5 +1,6 @@
 #include "neo/geometry.hpp"
 #include "neo/engine/operation.hpp"
+#include "neo/engine/goal_search.hpp"
 #include "neo/engine/sample_batch.hpp"
 #include "neo/engine/strategies.hpp"
 #include "neo/problems/fixed_angle.hpp"
@@ -384,6 +385,29 @@ void test_parabola_dynamic_euclidea_mitm_smoke() {
           "dynamic Euclidea MITM should build shared prefixes without explicit masks");
 }
 
+void test_a_recipe_that_names_a_curve_beyond_the_points_rebuilds() {
+    // The places of a step are of two kinds: the perpendicular and the
+    // parallel name a point and a curve, and the index of the curve can be
+    // beyond the number of the points of the figure.  The replay of a recipe
+    // has to build such an operation anyway.
+    neo::goal::State state;
+    state.points = {neo::fast::GPoint{0.0, 0.0}, neo::fast::GPoint{2.0, 0.0}};
+    state.cost = 0;
+    check(neo::goal::extend(state, neo::goal::Step{1, 0, 1}, 64, neo::engine::Mode::All),
+          "the circle about the first point should be drawn");
+    check(neo::goal::extend(state, neo::goal::Step{1, 1, 0}, 64, neo::engine::Mode::All),
+          "the circle about the second point should be drawn");
+    check(neo::goal::extend(state, neo::goal::Step{0, 0, 1}, 64, neo::engine::Mode::All),
+          "the line of the two points should be drawn");
+    check(state.curves.size() == 3, "the figure should have three curves");
+    // the perpendicular to the third curve through the first point: the index
+    // of the curve is beyond the number of the points
+    check(neo::goal::extend(state, neo::goal::Step{0, 0, 2, neo::goal::Op::PerpendicularThrough},
+                             64, neo::engine::Mode::All),
+          "the perpendicular to a curve beyond the points should be drawn");
+    check(state.curves.size() == 4, "the figure should have four curves");
+}
+
 }  // namespace
 
 int main() {
@@ -412,6 +436,7 @@ int main() {
         test_parabola_beam_smoke();
         test_five_step_e_prefix_replay();
         test_parabola_dynamic_euclidea_mitm_smoke();
+        test_a_recipe_that_names_a_curve_beyond_the_points_rebuilds();
         std::cout << "All tests passed\n";
         return 0;
     } catch (const std::exception& error) {
